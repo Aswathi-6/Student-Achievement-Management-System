@@ -1,0 +1,496 @@
+import os
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from werkzeug.utils import secure_filename
+import ar_master
+from flask import Flask, render_template, flash, request, session, current_app, send_from_directory,redirect, url_for
+from datetime import date
+import random
+app = Flask(_name_, static_folder="static")
+app.config.from_object(_name_)
+app.config['SECRET_KEY'] = '7d441f27d441f27567d441f2b6176a'
+mm = ar_master.master_flask_code()
+@app.route("/")
+def homepage():
+return render_template('index.html');
+@app.route("/admin", methods=['GET', 'POST'])
+def admin():
+if request.method == 'POST':
+un = request.form['uname']
+pa = request.form['pass']
+usern = mm.select_direct_query("select * from admin_details where username='" + str(un) + "' and password='" + str(pa) + "'")
+if usern:
+session['admin'] = un
+return redirect('/admin_home')
+else
+return render_template('admin.html', msg='failed')
+return render_template('admin.html')
+@app.route("/admin_home")
+def admin_home();
+return render_template('admin_home.html')
+@app.route("/admin_add_staff",methods = ['GET', 'POST'])
+def admin_add_staff():
+if request.method == 'POST':
+        name = request.form['name']
+        department = request.form['department']
+        staff_id = request.form['staff_id']
+        contact = request.form['contact']
+email = request.form['email'
+address = request.form['address']
+experience= request.form['experience']
+password= request.form['password']
+maxin=mm.find_max_id("staff_details")
+result=mm.insert_query("insert into staff_details values('"+str(maxin)+"','"+str(name)+"','"+str(department)+"','"+str(staff_id)+"','"+str(contact)+"','"+str(email)+"','"+str(address)+"','"+str(experience)+"','"+str(password)+"','0','0')")
+if (result == 1):
+return render_template('admin_add_staff.html',flash_message=True,msg="Registration Successfully")
+else:
+return render_template('admin_add_staff.html', msg="Failed")
+return render_template('admin_add_staff.html')
+@app.route("/admin_view_staff",methods = ['GET', 'POST'])
+def admin_view_staff():
+data=mm.select_direct_query("select id,name,department,staff_id,contact,email,address,experience from staff_details")
+return render_template('admin_view_staff.html',items=data)
+@app.route("/admin_view_student",methods = ['GET', 'POST'])
+def admin_view_student():
+data=mm.select_direct_query("select id,roll_no,reg_no,name,contact,email,address,dob,gender,father_name,department,year,section from student_details")
+return render_template('admin_view_student.html',items=data)
+@app.route("/staff", methods=['GET', 'POST'])
+def staff():
+if request.method == 'POST':
+un = request.form['uname']
+pa = request.form['pass']
+usern = mm.select_direct_query("select * from staff_details where email='" + str(un) + "' and password='" + str(pa) + "'")
+if usern:
+session['staff'] = un
+ return redirect('/staff_home')
+ else:
+  return render_template('staff.html', msg='failed')
+  return render_template('staff.html')
+@app.route("/student", methods=['GET', 'POST'])
+def student():
+ if request.method == 'POST':
+un = request.form['uname']
+pa = request.form['pass']
+usern = mm.select_direct_query("select * from student_details where email='" + str(un) + "' and dob='" + str(pa) + "'")
+if usern:
+session['student'] = un
+session['roll_no']=usern[0][1]
+return redirect('/student_home')
+else:
+return render_template('student.html', msg='failed')
+return render_template('student.html')
+@app.route("/student_home")
+def student_home():
+return render_template('student_home.html')
+@app.route("/staff_home")
+def staff_home():
+return render_template('staff_home.html')
+@app.route('/admin_view_staff_edit/<string:id>', methods=['GET','POST'])
+def admin_view_staff_edit(id):
+session['id']=id
+data = mm.select_direct_query("select * from staff_details where id='" + id + "'")
+ return render_template('admin_view_staff_edit.html', items=data)
+@app.route("/admin_view_staff_edit1",methods = ['GET', 'POST'])
+def admin_view_staff_edit1():
+if request.method == 'POST':
+id=session['id']
+name = request.form['name']
+department = request.form['department']
+staff_id = request.form['staff_id']
+contact = request.form['contact']
+email = request.form['email']
+address = request.form['address']
+experience= request.form['experience']
+password= request.form['password']
+result=mm.insert_query("update staff_details  set    name='"+str(name)+"',department='"+str(department)+"',staff_id='"+str(staff_id)+"',contact='"+str(contact)+"',email='"+str(email)+"',address='"+str(address)+"',experience='"+str(experience)+"',password='"+str(password)+"' where id='"+str(id)+"'")
+if (result == 1):
+return admin_view_staff()
+return render_template('admin_view_staff.html')
+@app.route('/admin_view_staff_delete/<string:id>', methods=['GET','POST'])
+def admin_view_staff_delete(id):
+session['id']=id
+data = mm.insert_query("delete   from staff_details where id='" + id + "'")
+return admin_view_staff()
+@app.route("/student_register", methods = ['GET', 'POST'])
+def student_register():
+msg = ''
+if request.method == 'POST':
+roll_no=request.form['roll_no']
+reg_no=request.form['reg_no']
+name=request.form['name']
+contact=request.form['contact']
+email=request.form['email']
+address=request.form['address']
+dob=request.form['dob']
+gender=request.form['gender']
+father_name=request.form['father_name']
+department=request.form['department']
+year=request.form['year']
+section=request.form['section']
+maxid=mm.find_max_id("student_details")
+mm.insert_query("insert into student_details values('" + str(maxid) + "','" + roll_no + "','" + reg_no + "','" + name + "','" + contact + "','" + email + "','" + address + "','" + dob + "','" + gender + "','" + father_name + "','"+department+"','"+year+"','"+section+"','0','0')")
+msg="Registration Success"
+ return render_template('student_register.html', msg=msg)
+ return render_template('student_register.html',msg=msg)
+@app.route("/staff_upload", methods=['GET', 'POST'])
+def staff_upload():
+staff=session['staff']
+if request.method == 'POST':
+roll_no = request.form['roll_no']
+cgpa = request.form['cgpa']
+mark = request.form['mark']
+f = request.files['file']
+f.save(os.path.join("static/uploads/", secure_filename(f.filename)))
+f2 = request.files['file2']
+f2.save(os.path.join("static/uploads/", secure_filename(f2.filename)))
+f3 = request.files['file3']
+f3.save(os.path.join("static/uploads/", secure_filename(f3.filename)))
+maxin = mm.find_max_id("mark_details")
+qry = ("insert into mark_details values('" + str(maxin) + "','" + str(staff) + "','" + str(roll_no) + "','" + str(cgpa) + "','" + str(mark) + "','" + str(f.filename) + "','" + str(f2.filename) + "','" + str(f3.filename) + "','0','0')")
+result = mm.insert_query(qry)
+return render_template('staff_upload.html',msg='Success')
+return render_template('staff_upload.html')
+@app.route('/staff_student_details')
+def staff_student_details():
+data = mm.select_direct_query("select * from student_details")
+return render_template('staff_student_details.html', items=data)
+@app.route('/student_my_achivement')
+def student_my_achivement():
+roll_no=session['roll_no']
+data = mm.select_direct_query("select * from mark_details where roll_no='"+str(roll_no)+"'")
+return render_template('student_my_achivement.html', items=data)
+@app.route('/student_all_achivement')
+def student_my_achivement1():
+# roll_no=session['roll_no']
+data = mm.select_direct_query("select * from mark_details")
+return render_template('student_my_achivement1.html', items=data)
+if _nam_ == '_main_':
+# app.run(debug=True, use_reloader=True)
+app.run(host='0.0.0.0', port=5000, debug=True)
+home page desing
+<!--
+author: W3layouts
+author URL: http://w3layouts.com
+License: Creative Commons Attribution 3.0 Unported
+License URL: http://creativecommons.org/licenses/by/3.0/
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title></title>
+<!-- custom-theme -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="keywords" content="Andragogy Responsive web template, Bootstrap Web Templates, Flat Web Templates, Android Compatible web template, 
+Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, SonyEricsson, Motorola web design" />
+<script type="application/x-javascript"> addEventListener("load", function() { setTimeout(hideURLbar, 0); }, false);
+function hideURLbar(){ window.scrollTo(0,1); } </script>
+<!-- //custom-theme -->
+<link href="css/bootstrap.css" rel="stylesheet" type="text/css" media="all" />
+<link href="css/style.css" rel="stylesheet" type="text/css" media="all" />
+<!-- js -->
+<script type="text/javascript" src="js/jquery-2.1.4.min.js"></script>
+<!-- //js -->
+<!-- font-awesome-icons -->
+<style>
+{% include 'css/bootstrap.css' %}
+{% include 'css/style.css' %}
+{% include 'css/font-awesome.css' %}
+</style>
+<!-- //font-awesome-icons -->
+<link href="//fonts.googleapis.com/css?family=Oswald:300,400,700&amp;subset=latin-ext" rel="stylesheet">
+<link href='//fonts.googleapis.com/css?family=Open+Sans:400,300,300italic,400italic,600,600italic,700,700italic,800,800italic' rel='stylesheet' type='text/css'>
+<style type="text/css">
+<!--
+.style19 {font-family: "Courier New", Courier, monospace}
+-->
+</style>
+</head>
+<body>
+<!-- header -->
+<div class="header_address_mail">
+<div class="container">
+<div class="agileits_w3layouts_header_address_grid">
+<ul>	
+<li></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="header">
+<div class="container">
+<div class="w3_agile_logo">
+<h1><a href="#"><span>ACADEMIC</span>ACHIEVEMENT</a></h1>
+</div>
+<div class="header-nav">
+<nav class="navbar navbar-default">
+<div class="navbar-header navbar-left">
+<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+<span class="sr-only">Toggle navigation</span>
+<span class="icon-bar"></span>
+<span class="icon-bar"></span>
+<span class="icon-bar"></span>
+</button>
+</div>
+<!-- Collect the nav links, forms, and other content for toggling -->
+<div class="collapse navbar-collapse navbar-right" id="bs-example-navbar-collapse-1">
+<nav class="link-effect-12">
+<ul class="nav navbar-nav w3_agile_nav">
+<li><a href="/"><span>Home</span></a></li>
+<li  class="active"><a href="/admin"><span>Admin</span></a></li>
+<li><a href="/staff"><span>Staff</span></a></li>
+<li><a href="/student"><span>Student</span></a></li>
+</ul>
+</nav>
+</div>
+</nav>
+</div>
+<div class="clearfix"> </div>
+</div>
+</div>
+<!-- header -->
+<!-- banner1 -->
+<div class="banner1">
+</div>
+<!-- about -->
+<div class="services">
+<div class="container">
+<div class="w3layouts_header">
+<h2>Admin <span> Login</span></h2>
+<form name="form1" method="post" action="/admin">
+<table width="328" height="156" align="center">
+<tr>
+<td><h4><strong><span class="style19">Username</span></strong></h4></td>
+<td><input type="text" name="uname"  required="" /></td>
+</tr>
+<tr><td><h4><strong><span class="style19">Password</span></strong></h4></td>
+ <td><input type="password" name="pass"  required="" /></td>
+ </tr>
+ <tr>
+ <td>&nbsp;</td>
+<td><input type="submit" name="btn" value="Login" />
+{{ msg }}</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<!-- //about -->
+<!-- team --><!-- //team -->
+<!-- stats --><!-- //stats -->
+<!-- subscribe -->
+<!-- //subscribe -->
+<!-- copy-right -->
+<div class="copy-right-grids">
+<div class="container">
+<div class="copy-left">
+<p class="footer-gd">All Rights Reserved | Design by <a href="#">Admin</a></p>
+</div>
+<div class="clearfix"></div>
+</div>
+</div>
+<!-- //copy-right -->
+<!-- stats -->
+<script src="js/jquery.waypoints.min.js"></script>
+<script src="js/jquery.countup.js"></script>
+<script>
+$('.counter').countUp();
+</script>
+<!-- //stats -->
+<!-- start-smooth-scrolling -->
+<script type="text/javascript" src="js/move-top.js"></script>
+<script type="text/javascript" src="js/easing.js"></script>
+<script type="text/javascript">
+jQuery(document).ready(function($) {
+$(".scroll").click(function(event){		
+event.preventDefault();
+$('html,body').animate({scrollTop:$(this.hash).offset().top},1000);
+});
+});
+</script>
+<!-- start-smooth-scrolling -->
+<!-- for bootstrap working -->
+<script src="js/bootstrap.js"></script>
+<!-- //for bootstrap working -->
+<!-- here stars scrolling icon -->
+<script type="text/javascript">
+$(document).ready(function() {
+/*
+var defaults = {
+containerID: 'toTop', // fading element id
+containerHoverID: 'toTopHover', // fading element hover id
+scrollSpeed: 1200,
+easingType: 'linear' 
+};
+*/
+$().UItoTop({ easingType: 'easeOutQuart' });
+});
+</script>
+<!-- //here ends scrolling icon -->
+</body>
+</html>
+
+<!--
+author: W3layouts
+author URL: http://w3layouts.com
+License: Creative Commons Attribution 3.0 Unported
+License URL: http://creativecommons.org/licenses/by/3.0/
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title></title>
+<!-- custom-theme -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="keywords" content="Andragogy Responsive web template, Bootstrap Web Templates, Flat Web Templates, Android Compatible web template, 
+Smartphone Compatible web template, free webdesigns for Nokia, Samsung, LG, SonyEricsson, Motorola web design" />
+<script type="application/x-javascript"> addEventListener("load", function() { setTimeout(hideURLbar, 0); }, false);
+function hideURLbar(){ window.scrollTo(0,1); } </script>
+<!-- //custom-theme -->
+<link href="css/bootstrap.css" rel="stylesheet" type="text/css" media="all" />
+<link href="css/style.css" rel="stylesheet" type="text/css" media="all" />
+<!-- js -->
+<script type="text/javascript" src="js/jquery-2.1.4.min.js"></script>
+<!-- //js -->
+<!-- font-awesome-icons -->
+<style>
+{% include 'css/bootstrap.css' %}
+{% include 'css/style.css' %}
+{% include 'css/font-awesome.css' %}
+</style>
+<!-- //font-awesome-icons -->
+<link href="//fonts.googleapis.com/css?family=Oswald:300,400,700&amp;subset=latin-ext" rel="stylesheet">
+<link href='//fonts.googleapis.com/css?family=Open+Sans:400,300,300italic,400italic,600,600italic,700,700italic,800,800italic' rel='stylesheet' type='text/css'>
+</head>
+<body>
+<!-- header -->
+<div class="header_address_mail">
+<div class="container">
+<div class="agileits_w3layouts_header_address_grid">
+<ul>	
+<li></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="header">
+<div class="container">
+<div class="w3_agile_logo">
+<h1><a href="#"><span>ACADEMIC</span>ACHIEVEMENT</a></h1>
+</div>
+<div class="header-nav">
+<nav class="navbar navbar-default">
+<div class="navbar-header navbar-left">
+<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+<span class="sr-only">Toggle navigation</span>
+<span class="icon-bar"></span>
+<span class="icon-bar"></span>
+<span class="icon-bar"></span>
+</button>
+</div>
+<!-- Collect the nav links, forms, and other content for toggling -->
+<div class="collapse navbar-collapse navbar-right" id="bs-example-navbar-collapse-1">
+<nav class="link-effect-12">
+<ul class="nav navbar-nav w3_agile_nav">
+<li class="active"><a href="/admin_home"><span>Home</span></a></li>
+<li  ><a href="/admin_add_staff"><span>Add Staff</span></a></li>
+<li  ><a href="/admin_view_staff"><span>Staff Details</span></a></li>
+<li  ><a href="/admin_view_student"><span>Student Details</span></a></li>
+<li><a href="/"><span>Logout</span></a></li>
+</ul>
+</nav>
+</div>
+</nav>
+</div>
+<div class="clearfix"> </div>
+</div>
+</div>
+<!-- header -->
+<!-- banner1 -->
+<div class="banner1">
+</div>
+<!-- about -->
+<div class="services">
+<div class="container">
+<div class="w3layouts_header">
+<h2>Admin <span> Home</span></h2>
+<form name="form1" method="post" action="/admin>
+<table width="257" height="153" align="center">
+<tr>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<!-- //about -->
+<!-- team --><!-- //team -->
+<!-- stats --><!-- //stats -->
+<!-- subscribe -->
+<!-- //subscribe -->
+<!-- copy-right -->
+<div class="copy-right-grids">
+<div class="container">
+<div class="copy-left">
+<p class="footer-gd">All Rights Reserved | Design by <a href="#">Admin</a></p>
+</div>
+<div class="clearfix"></div>
+</div>
+</div>
+<!-- //copy-right -->
+<!-- stats -->
+	<script src="js/jquery.waypoints.min.js"></script>
+	<script src="js/jquery.countup.js"></script>
+		<script>
+			$('.counter').countUp();
+		</script>
+<!-- //stats -->
+<!-- start-smooth-scrolling -->
+<script type="text/javascript" src="js/move-top.js"></script>
+<script type="text/javascript" src="js/easing.js"></script>
+<script type="text/javascript">
+	jQuery(document).ready(function($) {
+		$(".scroll").click(function(event){		
+			event.preventDefault();
+			$('html,body').animate({scrollTop:$(this.hash).offset().top},1000);
+		});
+	});
+</script>
+<!-- start-smooth-scrolling -->
+<!-- for bootstrap working -->
+	<script src="js/bootstrap.js"></script>
+<!-- //for bootstrap working -->
+<!-- here stars scrolling icon -->
+	<script type="text/javascript">
+		$(document).ready(function() {
+			/*
+				var defaults = {
+				containerID: 'toTop', // fading element id
+				containerHoverID: 'toTopHover', // fading element hover id
+				scrollSpeed: 1200,
+				easingType: 'linear' 
+				};
+			*/
+								
+			$().UItoTop({ easingType: 'easeOutQuart' });
+								
+			});
+	</script>
+<!-- //here ends scrolling icon -->
+</body>
+</html>
